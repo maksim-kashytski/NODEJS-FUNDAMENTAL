@@ -5,15 +5,15 @@ import { pipeline } from 'stream';
 const CSV_File_Path = './table.csv';
 const TXT_File_Path = './table.txt';
 
-pipeline(
-    fs.createReadStream(CSV_File_Path),
-    csv(),
-    fs.createWriteStream(TXT_File_Path),
-    (err) => {
-        if (err) {
-            console.error('Failed', err);
-        } else {
-            console.log('Succeeded');
-        }
+const readStream = fs.createReadStream(CSV_File_Path);
+const writeStream = fs.createWriteStream(TXT_File_Path);
+
+const errorHandler = (err) => {
+    if (err) {
+        console.error('Failed', err);
+    } else {
+        console.log('Succeeded');
     }
-);
+};
+
+pipeline(readStream, csv(), writeStream, errorHandler);
