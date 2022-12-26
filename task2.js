@@ -1,26 +1,19 @@
-import { writeFile } from 'node:fs/promises';
-import { appendFile } from 'node:fs';
 import csv from 'csvtojson';
+import fs from 'fs';
+import { pipeline } from 'stream';
 
 const CSV_File_Path = './table.csv';
 const TXT_File_Path = './table.txt';
 
-const errorHandler = (e) => {
-    if (e) console.error(e.message);
-};
-
-const transpliteCSVtoTXT = async () => {
-    await writeFile(TXT_File_Path, '')
-        .catch(errorHandler)
-        .finally(() => console.log('The text file is prepared for writing'));
-
-    csv({ output: 'line' })
-            .fromFile(CSV_File_Path)
-            .subscribe(
-                (csvLine) => appendFile(TXT_File_Path, csvLine + '\n', errorHandler),
-                errorHandler,
-                () => console.log('Successful')
-            );
-};
-
-transpliteCSVtoTXT();
+pipeline(
+    fs.createReadStream(CSV_File_Path),
+    csv(),
+    fs.createWriteStream(TXT_File_Path),
+    (err) => {
+        if (err) {
+            console.error('Failed', err);
+        } else {
+            console.log('Succeeded');
+        }
+    }
+);
