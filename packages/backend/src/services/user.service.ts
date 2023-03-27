@@ -1,106 +1,99 @@
-import { IUser } from '../models/user/user.types';
+import { Op } from 'sequelize';
+import { User } from '../models/user.model-definition';
+import { UserAttributes, UserCreationAttributes, UserInstance } from '../types/user.interface';
+import { Group } from '../models/group.model-definition';
+import { UserTokenPayload } from "../types/user-token-payload.interface";
+import { generateAccessToken, generateRefreshToken } from "../tokens";
 
+/**
+ * This class describes User Service and contains operations that
+ * can be applied to users
+ */
 export class UserService {
-
-    /**
-     * Array that contains mocked data about users
-     * @private users
-     */
-    private users: Array<IUser> = [
-        {
-            "id": 0,
-            "login": "Login123",
-            "password": "password",
-            "age": 30,
-            "isDeleted": false
-        },
-        {
-            "id": 1,
-            "login": "Wishperfect",
-            "password": "password",
-            "age": 21,
-            "isDeleted": false
-        },
-        {
-            "id": 2,
-            "login": "Iofrench",
-            "password": "password",
-            "age": 66,
-            "isDeleted": false
-        },
-        {
-            "id": 3,
-            "login": "Liliana",
-            "password": "password",
-            "age": 21,
-            "isDeleted": false
-        },
-        {
-            "id": 4,
-            "login": "googleAcc",
-            "password": "password",
-            "age": 29,
-            "isDeleted": false
-        },
-        {
-            "id": 5,
-            "login": "Freedom12",
-            "password": "password",
-            "age": 16,
-            "isDeleted": false
-        },
-    ];
 
     /**
      * This method describes logic of getting user by id
      * @param id is string
      */
-    public getUserById(id: string): IUser | undefined {
-        return this.users.find((user: IUser) => user.id.toString() === id);
+    public async getUserById(id: string): Promise<UserInstance | null> {
+        return User.findByPk(id);
     }
 
     /**
      * This method describes logic of getting all users
      */
-    public getAllUsers(): Array<IUser> {
-        return this.users
-            .filter((user: IUser) => !user.isDeleted)
-            .sort((a: IUser, b: IUser) => a.login > b.login ? 1 : -1);
+    public async getAllUsers(limit?: number): Promise<UserInstance[]> {
+        return User.findAll({
+            where: {isDeleted: false},
+            order: [['login', 'ASC']],
+            limit: limit
+        })
     }
 
     /**
      * This method describes logic of getting user by login
      * @param loginSubstring is string
+     * @param limit
      */
-    public getAutoSuggestUsers(loginSubstring: string): Array<IUser> {
-        return this.getAllUsers().filter((user: IUser) => user.login.toLowerCase().includes(loginSubstring));
+    public async getAutoSuggestUsers(loginSubstring: string, limit?: number): Promise<UserInstance[]> {
+        return User.findAll({
+            where: {isDeleted: false, login: {[Op.iLike]: `%${loginSubstring}%`}},
+            order: [['login', 'ASC']],
+            limit: limit
+        })
     }
 
     /**
      * This method describes logic of adding user
-     * @param newUser is Omit<IUser, 'id'>
+     * @param newUser is Omit<UserAttributes, 'id'>
      */
-    public addUser(newUser: Omit<IUser, 'id'>): IUser {
-        const newId = this.users.length;
-        const user = {id: newId, ...newUser};
-        this.users.push(user);
-        return user;
+    public async addUser(newUser: UserCreationAttributes): Promise<UserInstance> {
+        return User.create(newUser);
     }
 
     /**
      * This method describes logic of updating user
-     * @param targetUser is IUser
-     * @param newValues is Partial<UserI>
+     * @param targetUser is UserAttributes
+     * @param user
      */
-    public updateUser(targetUser: IUser, newValues: Partial<IUser>, ): IUser {
-        return Object.assign(targetUser, newValues);
+    public async updateUser(targetUser: UserInstance, user: Partial<UserAttributes>): Promise<void> {
+        await User.update({...user}, {where: {id: targetUser.id}});
     }
 
     /**
      * This method describes logic of deleting user
-     * @param user is IUser
+     * @param id
      */
-    public deleteUser(user: IUser): void {
-        user.isDeleted = true;
+    public async deleteUser(id: string): Promise<void> {
+        await User.update({isDeleted: true}, {where: {id}});
+    }
+
+    public async getUserWithGroup(id: string): Promise<any> {
+        return User.findByPk(id, {
+            include: {
+                model: Group,
+                attributes: ['id', 'name', 'permissions'],
+                through: { attributes: [] }
+            }
+        })
+    }
+
+    login = async (username: string, password: string) => {
+        const user = await User.findOne({where: {login: username, password: password}});
+
+        if (user) {
+            const payload: UserTokenPayload = {
+                id: user.id,
+                login: user.login,
+            }
+
+            return {
+                'access-token': generateAccessToken(payload),
+                'refresh-token': generateRefreshToken(payload),
+            };
+        }
+
+        return null;
+
     }
 }

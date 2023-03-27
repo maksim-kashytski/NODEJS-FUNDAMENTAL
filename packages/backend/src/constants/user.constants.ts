@@ -15,3 +15,9 @@ export const userExists = {
         message: 'User is already exists'
     }
 };
+
+export const requiredFields = {
+    error: {
+        message: 'Please, update fields'
+    }
+};
