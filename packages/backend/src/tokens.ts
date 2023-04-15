@@ -16,7 +16,6 @@ export const checkAccessToken = (req: Request, res: Response, next: NextFunction
     const authHeader: any = req.headers.authorization;
     
     const token = authHeader && authHeader.split(' ')[1];
-    console.log('token', token);
 
     if (token) {
         jwt.verify(token, ACCESS_TOKEN_SECRET, (err: VerifyErrors | null) => {

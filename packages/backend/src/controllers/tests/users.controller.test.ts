@@ -1,17 +1,16 @@
 import { routerUsers } from '../users.controller';
 import { UserCreationAttributes } from '../../types/user.interface';
-import { Response } from 'supertest';
-import express, { Application } from 'express';
+import request, { Response } from 'supertest';
+import express from 'express';
 import { sequelize } from '../../data-access/database.connection';
 import { User } from '../../models/user.model-definition';
 import { Group } from '../../models/group.model-definition';
 import { UserGroup } from '../../models/user-group.model-definition';
 import * as bodyParser from 'body-parser';
 import * as http from 'http';
-const request = require('supertest');
 
 const port = process.env.PORT || 3000;
-const mockApp: Application = express();
+const mockApp = express();
 let server: http.Server;
 mockApp.use(bodyParser.json());
 mockApp.use('/users', routerUsers);
